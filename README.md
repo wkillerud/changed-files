@@ -1,105 +1,69 @@
-<p align="center">
-  <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
-</p>
+# Changed Files
 
-# Create a JavaScript Action using TypeScript
+Finds files that have uncommitted changes using [simple-git](https://github.com/steveukx/git-js). In other words, the action finds files that have been changed or created by other actions.
 
-Use this template to bootstrap the creation of a TypeScript action.:rocket:
+Uses [micromatch](https://github.com/micromatch/micromatch#why-use-micromatch) for pattern matching.
 
-This template includes compilation support, tests, a validation workflow, publishing, and versioning guidance.  
-
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
-
-## Create an action from this template
-
-Click the `Use this Template` and provide the new repo details for your action
-
-## Code in Main
-
-> First, you'll need to have a reasonably modern version of `node` handy. This won't work with versions older than 9, for instance.
-
-Install the dependencies  
-```bash
-$ npm install
-```
-
-Build the typescript and package it for distribution
-```bash
-$ npm run build && npm run package
-```
-
-Run the tests :heavy_check_mark:  
-```bash
-$ npm test
-
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
-
-...
-```
-
-## Change action.yml
-
-The action.yml defines the inputs and output for your action.
-
-Update the action.yml with your name, description, inputs and outputs for your action.
-
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
-
-## Change the Code
-
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
-
-```javascript
-import * as core from '@actions/core';
-...
-
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
-
-run()
-```
-
-See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
-
-## Publish to a distribution branch
-
-Actions are run from GitHub repos so we will checkin the packed dist folder. 
-
-Then run [ncc](https://github.com/zeit/ncc) and push the results:
-```bash
-$ npm run package
-$ git add dist
-$ git commit -a -m "prod dependencies"
-$ git push origin releases/v1
-```
-
-Note: We recommend using the `--license` option for ncc, which will create a license file for all of the production node modules used in your project.
-
-Your action is now published! :rocket: 
-
-See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-
-## Validate
-
-You can now validate the action by referencing `./` in a workflow in your repo (see [test.yml](.github/workflows/test.yml))
+## Usage
 
 ```yaml
-uses: ./
-with:
-  milliseconds: 1000
+- name: Look for changed files
+  uses: wkillerud/changed-files@1.0.0
+  id: lfcf
+  with:
+    # See the micromatch docs for more examples: https://github.com/micromatch/micromatch#matching-features
+    patterns: |
+      **/__image_snapshots__/*
+      **/new.txt
+
+- name: Upload changed files
+  if: steps.lfcf.outputs.has_changed_files == 'true'
+  uses: actions/upload-artifact@v2
+  with:
+    name: changed-files
+    # GitHub will find the lowest common folder to reduce the number of folders
+    # in the uploaded artifact. If you want to preserve the same folder structure
+    # as in your repository when downloading the artifact, include a file from
+    # the root of your repository.
+    path: |
+      package.json
+      ${{ steps.lfcf.outputs.changed_files }}
 ```
 
-See the [actions tab](https://github.com/actions/typescript-action/actions) for runs of this action! :rocket:
+## Input
 
-## Usage:
+### input.patterns
 
-After testing you can [create a v1 tag](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md) to reference the stable and latest V1 action
+A [`micromatch`-compatible pattern](https://github.com/micromatch/micromatch#matching-features), optionally a multiline string with several patterns. Refer to the `micromatch` documentation for advanced pattern examples.
+
+**Type:** `String` (required)
+
+### input.ignore
+
+An [option passed to `micromatch`](https://github.com/micromatch/micromatch#optionsignore), optionally a multiline string with several patterns. Refer to the `micromatch` documentation for advanced pattern examples.
+
+**Type:** `String`
+
+### input.output
+
+Set it to `array` if you want a stringified JSON array as output instead of the default multiline string.
+
+**Type:** `"string" | "array"`
+
+**Default:** `"string"`
+
+## Outputs
+
+### outputs.has_changed_files
+
+`true` if there are new or changed files matching a pattern, otherwise it's `false`.
+
+**Type:** `Boolean`
+
+### outputs.changed_files
+
+Either a stringified JSON array or a string with files separated by newline, depending on the [`output` variable](#inputoutput).
+
+**Type:** `String`
+
+**Default:** a string with files separated by newline
