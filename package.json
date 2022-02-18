@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
-  "version": "0.0.0",
+  "name": "@wkillerud/changed-files",
+  "version": "1.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Find files that were changed during the run of the action, using simple-git, with an option to upload the files as an artifact",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -10,7 +10,9 @@
     "format-check": "prettier --check '**/*.ts'",
     "lint": "eslint src/**/*.ts",
     "package": "ncc build --source-map --license licenses.txt",
+    "pretest": "node ./__testing_ground__/pre-test",
     "test": "jest",
+    "posttest": "node ./__testing_ground__/post-test",
     "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
   },
   "repository": {
@@ -25,15 +27,18 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.6.0"
+    "@actions/core": "^1.6.0",
+    "micromatch": "^4.0.4",
+    "simple-git": "^3.2.6"
   },
   "devDependencies": {
+    "@types/micromatch": "^4.0.2",
     "@types/node": "^16.10.5",
     "@typescript-eslint/parser": "^5.8.1",
-    "@vercel/ncc": "^0.31.1",
-    "eslint": "^7.32.0",
+    "@vercel/ncc": "^0.33.3",
+    "eslint": "^8.9.0",
     "eslint-plugin-github": "^4.3.2",
-    "eslint-plugin-jest": "^25.3.2",
+    "eslint-plugin-jest": "^26.1.1",
     "jest": "^27.2.5",
     "js-yaml": "^4.1.0",
     "prettier": "2.5.1",
