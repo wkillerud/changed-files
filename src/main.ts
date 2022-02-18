@@ -1,16 +1,43 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {
+  toList,
+  validateOutputInput,
+  validatePatternsInput
+} from './input-validation'
+import {findChangedFiles} from './git'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+    const patterns: string[] = toList(
+      validatePatternsInput(core.getInput('patterns', {required: true}))
+    )
+    core.debug(`Got "patterns" ${patterns}`)
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const ignoreInput: string = core.getInput('ignore')
+    const ignore: string[] | undefined = ignoreInput
+      ? toList(core.getInput('ignore'))
+      : undefined
 
-    core.setOutput('time', new Date().toTimeString())
+    if (ignore) {
+      core.debug(`Got "ignore" ${ignore}`)
+    }
+
+    const output = validateOutputInput(core.getInput('output'))
+    core.debug(`Got "output" ${output}`)
+
+    const paths = await findChangedFiles(patterns, {ignore})
+
+    core.setOutput('has_changed_files', paths.length > 0)
+
+    switch (output) {
+      case 'array':
+        core.setOutput('changed_files', paths) // GitHub Actions will run non-string values through JSON.stringify
+        break
+      case 'string':
+      default:
+        core.setOutput('changed_files', paths.join('\n'))
+        break
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
